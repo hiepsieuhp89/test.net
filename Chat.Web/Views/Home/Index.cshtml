@@ -1,0 +1,422 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+@section scripts {
+    <script src="~/Scripts/jquery-1.10.2.min.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.2.1.min.js"></script>
+    <script src="~/Scripts/knockout-3.4.2.js"></script>
+    <script src="~/Scripts/modernizr-2.6.2.js"></script>
+    <script src="~/Scripts/MyChat.js"></script>
+    <script src="~/Scripts/MyScript.js"></script>
+    <script src="~/signalr/hubs"></script>
+}
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="home-tab" data-toggle="tab" data-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Chat</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="profile-tab" data-toggle="tab" data-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Sport Score</button>
+    </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab" style="height: 800px;">
+        <div class="row main-container">
+            <div class="col-md-2 left">
+                <div class="header">
+                    <h5>Phòng chat</h5>
+                    <a href="#" id="create-room" data-toggle="modal" data-target="#create-room-modal"><span class="glyphicon glyphicon-plus"></span></a>
+                </div>
+                <div class="rooms">
+                    <div>
+                        <ul id="room-list" data-bind="foreach: chatRooms">
+                            <li>
+                                <a href="#" data-bind="text: $data.name, click: $parent.joinRoom.bind($parent, $data)"></a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="user">
+                    <div class="user-avatar">
+                        <img class="avatar-icon2" src="~/Content/icons/avatar1.png" data-bind="attr: { src: myAvatar() }" />
+                    </div>
+                    <div class="user-name">
+                        <a href="#" data-bind="text: myName"></a>
+                    </div>
+                    <div class="user-signout">
+                        @using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <a href="javascript:document.getElementById('logoutForm').submit()" title="Sign Out"><span class="glyphicon glyphicon-log-out"></span></a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7 middle">
+                <div class="chat-header">
+                    <h5 id="joinedRoom">Home</h5>
+                    <div id="edit-room">
+                    </div>
+                </div>
+                <div id="pinnedMess">
+                    <!-- ko if: pinnedMessages -->
+                    <!-- ko if: pinnedMessages.id -->
+                    <div class="pinnedMess">
+                        <p style="color: blue; font-weight: bold; margin-bottom: 0px;">Tin nhắn ghim</p>
+                        <!-- ko if: pinnedMessages.content() != null && pinnedMessages.content().indexOf('post-image') !== -1 -->
+                        <span data-bind="click: pointMessage(pinnedMessages.id)">Hình ảnh</span>
+                        <!-- /ko -->
+                        <!-- ko if: pinnedMessages.content() != null && pinnedMessages.content().indexOf('post-image') === -1 -->
+                        <span id="pinnedMess" style="color: #000000;" data-bind="html: pinnedMessages.content, click: pointMessage(pinnedMessages.id)"></span>
+                        <!-- /ko -->
+                        <button data-bind="click: removeStickMessage" class="btnRemoveStick glyphicon glyphicon-remove"></button>
+                    </div>
+                    <!-- /ko -->
+                    <!-- /ko -->
+                </div>
+                <div class="chat-body better-scrollbar">
+                    <ul data-bind="foreach: chatMessages">
+                        <li>
+                            <div class="chat-message" data-bind="css: $data.isMine() === true ? 'ismine' : 'isother'">
+                                <div class="left-side">
+                                    <img src="~/Content/icons/avatar1.png" class="message-avatar" data-bind="attr: { src: $data.avatar }" />
+                                </div>
+                                <div class="message-content" data-bind="attr: { id: 'message-' + $data.id() }">
+                                    <span class="author" data-bind="text:$data.from"></span>
+                                    <span class="timestamp">
+                                        <!--<i class="glyphicon glyphicon-time"></i>-->
+                                        <span data-bind="text:$data.timestamp"></span>
+                                    </span>
+                                    <span class="content" data-bind="html:$data.content"></span>
+
+                                </div>
+
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="chat-input">
+                    <i class="glyphicon glyphicon-send"></i>
+                    <div class="actions">
+                        <label for="btnUpload" class="custom-file-upload">
+                            <img src="~/Content/icons/photo1.png" alt="" />
+                        </label>
+                        <input type="hidden" id="userReceiverId" value="" />
+                        <input type="file" id="btnUpload" accept="image/*" name="files" />
+                        <a id="emojibtn" href="#"><img src="~/Content/icons/smile1.png" /></a>
+                    </div>
+                    <div class="emoticon-container hidden" id="emojis-container">
+                        <a href="#">
+                            <input type="hidden" value=":)" />
+                            <img src="~/Content/emojis/emoji1.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value=":P" />
+                            <img src="~/Content/emojis/emoji2.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value=":O" />
+                            <img src="~/Content/emojis/emoji3.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value=":-)" />
+                            <img src="~/Content/emojis/emoji4.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value="B|" />
+                            <img src="~/Content/emojis/emoji5.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value=":D" />
+                            <img src="~/Content/emojis/emoji6.png" />
+                        </a>
+                        <a href="#">
+                            <input type="hidden" value="<3" />
+                            <img src="~/Content/emojis/emoji7.png" />
+                        </a>
+                    </div>
+                    <input id="chat-message" type="text" value="" data-bind="value:message, valueUpdate: 'afterkeydown', event: { keypress: onEnter }" placeholder="Soạn tin nhắn...." />
+                </div>
+            </div>
+            <div class="col-md-3 right">
+                <div class="header">
+                    <a href="/applicationusers" target="_blank"><h5>Quản lý tất cả người dùng (<span data-bind="text: filteredChatUsers().length">0</span>)</h5> </a>
+                </div>
+                <div class="chat-users better-scrollbar">
+                    <ul id="user-list" data-bind="foreach: filteredChatUsers">
+                        <li data-bind="click: $parent.joinSingleRoom.bind($parent, $data)">
+                            <div class="user-inner">
+                                <div class="left-side">
+                                    <img src="~/Content/icons/avatar1.png" data-bind="attr: { src:$data.avatar }" class="user-avatar" />
+                                </div>
+                                <div class="right-side">
+                                    <input type="hidden" class="username" data-bind="value:$data.userName" />
+                                    <span class="author" data-bind="text: $data.displayName"></span>
+                                    <span class="dot"></span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="search-user">
+                    <input type="text" class="" placeholder="Tìm người dùng" data-bind="value: filter, valueUpdate: 'afterkeydown'" />
+                </div>
+            </div>
+        </div>
+
+        <!-- CREATE ROOM MODAL -->
+        <div class="modal" id="create-room-modal">
+            <div class="modal-dialog" style="width: 70%!important">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click: closeRoom">&times;</button>
+                        <h4 class="modal-title">Tạo phòng</h4>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control" id="roomName" placeholder="Room name">
+                        <div style=" width: 50%; float: left">
+                            <h3>Danh sách thành viên</h3>
+                            <div class="list-group" data-bind="foreach: allUsers">
+                                <div style="height: 50px;">
+                                    <p data-bind="text: $data.displayName" style="float:left; width: 60%"></p>
+                                    <button type="button" class="btn btn-primary" data-bind="click: $parent.addUserToRoom.bind($parent, $data, 'create')">Thêm</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style=" width: 50%; float: right">
+                            <h3>Danh sách thành viên được chọn</h3>
+                            <div class="list-group" data-bind="foreach: userSelected">
+                                <div style="height: 45px;">
+                                    <p data-bind="text: $data.displayName" style="float:left; width: 60%"></p>
+                                    <button type="button" class="btn btn-primary" data-bind="click: $parent.removeUserSelectedRoom.bind($parent, $data, 'create')">Xóa</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="margin-top: 300px!important;">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" data-bind="click: closeRoom">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" data-bind="click: createRoom">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EDIT ROOM MODAL -->
+        <div class="modal" id="edit-room-modal">
+            <div class="modal-dialog" style="width: 70%!important">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click: closeRoom">&times;</button>
+                        <h4 class="modal-title">Edit Room</h4>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" class="form-control" id="editedRoomId" placeholder="Room name">
+                        <input type="text" class="form-control" id="editedRoomName" placeholder="Room name">
+                        <div style=" width: 50%; float: left">
+                            <h3>Danh sách thành viên</h3>
+                            <div class="list-group" data-bind="foreach: notChatUserRooms">
+                                <div style="height: 50px;">
+                                    <p data-bind="text: $data.displayName" style="float:left; width: 60%"></p>
+                                    <button type="button" class="btn btn-primary" data-bind="click: $parent.addUserToRoom.bind($parent, $data, 'edit')">Thêm</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style=" width: 50%; float: right">
+                            <h3>Danh sách thành viên trong nhóm</h3>
+                            <div class="list-group" data-bind="foreach: chatUserRooms">
+                                <div style="height: 45px;">
+                                    <p data-bind="text: $data.displayName" style="float:left; width: 60%"></p>
+                                    <!-- ko if: $data.roomRole-->
+                                    Quản trị viên
+
+                                    <!-- /ko -->
+                                    <!-- ko ifnot: $data.roomRole -->
+                                    <button type="button" class="btn btn-primary" data-bind="click: $parent.removeUserSelectedRoom.bind($parent, $data, 'edit')">Xóa</button>
+                                    <!-- /ko -->
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer" style="margin-top: 300px!important;">
+                        <button type="button" class="btn btn-default" data-dismiss="modal" data-bind="click: closeRoom">Close</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" data-bind="click: editRoom">Update</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REMOVE ROOM MODAL -->
+        <div class="modal" id="remove-room-modal">
+            <div class="modal-dialog" style="width: 900px!important;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Delete Room</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this Chat Room?</p>
+                    </div>
+                    <div class="modal-footer" \>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" data-bind="click: deleteRoom">Yes</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-dismissible alert-warning hidden" id="errorAlert">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <p data-bind="text:serverInfoMessage"></p>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab" style="height: 800px;">
+        <div class="container" id="isportTable" style=" overflow: scroll;">
+        </div>
+    </div>
+    </div>
+@{
+    var dataSport = ViewData["rsp"];
+}
+<script>
+    var renderMapping = {
+        awayCorner: {
+            type: 0,
+            title: "Away Corner"
+        },
+        awayHalfScore: {
+            type: 0,
+            title: "Away Half Score"
+        },
+        awayRed: {
+            type: 0,
+            title: "Away Red"
+        },
+        awayScore: {
+            type: 0,
+            title: "Away Score"
+        },
+        awayYellow: {
+            type: 0,
+            title: "Away Yellow"
+        },
+        extraExplain: {
+            type: 2,
+            title: "Extra Explain"
+        },
+        hasLineup: {
+            type: 0,
+            title: "Has Lineup"
+        },
+        homeCorner: {
+            type: 0,
+            title: "Home Corner"
+        },
+        homeHalfScore: {
+            type: 0,
+            title: "Home Half Score"
+        },
+        homeRed: {
+            type: 0,
+            title: "Home Red"
+        },
+        homeScore: {
+            type: 0,
+            title: "Home Score"
+        },
+        homeYellow: {
+            type: 0,
+            title: "Home Yellow"
+        },
+        injuryTime: {
+            type: 0,
+            title: "Injury Time"
+        },
+        matchId: {
+            type: 0,
+            title: "Match Id"
+        },
+        matchTime: {
+            type: 1,
+            title: "Match Time"
+        },
+        startTime: {
+            type: 1,
+            title: "Start Time"
+        },
+        status: {
+            type: 3,
+            title: "Status",
+            options: {
+                "0": "Not started",
+                "1": "First half",
+                "2": "Half-time break",
+                "3": "Second half",
+                "4": "Extra time",
+                "5": "Penalty",
+                "-1": "Finished",
+                "-10": "Cancelled",
+                "-11": "TBD",
+                "-12": "Terminated",
+                "-13": "Interrupted",
+                "-14": "Postponed",
+            }
+        },
+        var: {
+            type: 0,
+            title: "var"
+        }
+    }
+    function convertToTable(jsonData) {
+
+        // Get the container element where the table will be inserted
+        let container = document.getElementById("isportTable");
+        container.innerHTML = "";
+
+        // Create the table element
+        let table = document.createElement("table");
+        table.setAttribute("class" , "table table-striped");
+        //table.setAttribute("style", "width: 200px; height: 400px; overflow: scroll;");
+
+        // Get the keys (column names) of the first object in the JSON data
+        let cols = Object.keys(jsonData[0]);
+
+        // Create the header element
+        let thead = document.createElement("thead");
+        let tr = document.createElement("tr");
+
+        // Loop through the column names and create header cells
+        cols.forEach((item) => {
+            let th = document.createElement("th");
+            th.innerText = renderMapping?.[item]?.title ?? item; // Set the column name as the text of the header cell
+            tr.appendChild(th); // Append the header cell to the header row
+        });
+        thead.appendChild(tr); // Append the header row to the header
+        table.append(tr) // Append the header to the table
+
+        // Loop through the JSON data and create table rows
+        jsonData.forEach((item) => {
+            let tr = document.createElement("tr");
+
+            // Get the values of the current object in the JSON data
+            let vals = Object.values(item);
+            console.log(vals)
+
+            // Loop through the values and create table cells
+            vals.forEach((elem) => {
+                let td = document.createElement("td");
+                //td.innerText = renderMapping?.[elem]?.type == 1 ? new Date(elem).toLocaleDateString("en-US") : (renderMapping?.[item]?.type == 3 ? renderMapping?.[item]?.options?.[elem] : elem); // Set the value as the text of the table cell
+                td.innerText = (typeof elem != 'string' && elem.length > 5) ? new Date(elem).toLocaleDateString("en-US") :elem;
+                tr.appendChild(td); // Append the table cell to the table row
+            });
+            table.appendChild(tr); // Append the table row to the table
+        });
+        container.appendChild(table) // Append the table to the container element
+    }
+
+    var rspFromIsport = JSON.parse("@dataSport".replace(/&quot;/g, '\"'));
+    console.log(rspFromIsport.data)
+    convertToTable(rspFromIsport.data)
+</script>
